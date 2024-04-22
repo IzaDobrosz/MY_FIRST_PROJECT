@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+</html>
+
+{% load static %}
+<!doctype html>
+<html>
+    <head><meta charset="utf-8"></head>
+<!--    <body style="background-color:{{ background_color }};">-->
+    <img src="{% static 'garden_logo.png' %}"/>
+        <h1>My garden</h1>
+        {% block content %}
+
+        {% endblock %}
+
+     <footer>
+        {% if user.is_authenticated %}
+            <p>Aktualnie zalogowany użytkownik to {{ user.username }}</p>
+            <a href="/logout">Wyloguj</a>
+        {% else %}
+            <p>Uzytkownik nie jest zalogowany</p>
+            <a href="/login">Zaloguj</a>
+        {% endif %}
+    </footer>
+    </body>
+</html>
