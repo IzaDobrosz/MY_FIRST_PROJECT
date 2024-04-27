@@ -16,10 +16,26 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from my_garden_app.views import MyGardenLoginView
-
+from my_garden_app.views import (MyGardenLoginView,
+                                 PlantAddView,
+                                 PlantEditView,
+                                 PlantDeleteView,
+                                 PlantsListView,
+                                 PlantDetailView,
+                                 MyGardenLogoutView,
+                                 PLantMaintenanceAddView,
+                                 PlantMaintenanceDeleteView,
+                                 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('login/', MyGardenLoginView.as_view()),
+    path('login/', MyGardenLoginView.as_view(), name='login'),
+    path('logout/', MyGardenLogoutView.as_view(), name='logout'),
+    path('add_plant/', PlantAddView.as_view(), name='add_plant'),
+    path('edit_plant/<int:pk>/', PlantEditView.as_view(), name='edit_plant'),
+    path('delete_plant/<int:plant_id>/', PlantDeleteView.as_view(), name='delete_plant'),
+    path('plants_list/', PlantsListView.as_view(), name='plants_list'),
+    path('plant_details/<int:plant_id>/', PlantDetailView.as_view(), name='plant_details'),
+    path('add_maintenance/', PLantMaintenanceAddView.as_view(), name='add_maintenance'),
+    path('delete_maintenance/<int:task_id>/', PlantMaintenanceDeleteView.as_view(), name='delete_maintenance'),
 ]
