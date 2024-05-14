@@ -1,4 +1,22 @@
 from django.db import models
+from django.contrib.auth.models import User
+
+MONTH_CHOICES = [
+    (1, 'Styczeń'),
+    (2, 'Luty'),
+    (3, 'Marzec'),
+    (4, 'Kwiecień'),
+    (5, 'Maj'),
+    (6, 'Czerwiec'),
+    (7, 'Lipiec'),
+    (8, 'Sierpień'),
+    (9, 'Wrzesień'),
+    (10, 'Październik'),
+    (11, 'Listopad'),
+    (12, 'Grudzień'),
+    (13, 'Brak')
+]
+
 
 class Plant(models.Model):
     SUNLIGHT_EXPOSURE_CHOICES = [
@@ -73,22 +91,8 @@ class PlantMaintenance(models.Model):
         (2, 'Drugi'),
         (3, 'Trzeci'),
         (4, 'Czwarty'),
-        (5, 'Ostatni')
-    ]
-
-    MONTH_CHOICES = [
-        (1, 'Styczeń'),
-        (2, 'Luty'),
-        (3, 'Marzec'),
-        (4, 'Kwiecień'),
-        (5, 'Maj'),
-        (6, 'Czerwiec'),
-        (7, 'Lipiec'),
-        (8, 'Sierpień'),
-        (9, 'Wrzesień'),
-        (10, 'Październik'),
-        (11, 'Listopad'),
-        (12, 'Grudzień')
+        (5, 'Piąty'),
+        (6, 'Brak')
     ]
 
     plant = models.ForeignKey(Plant, on_delete=models.CASCADE, verbose_name="Nazwa")
@@ -101,3 +105,42 @@ class PlantMaintenance(models.Model):
         task_name = dict(self.TASK_CHOICES).get(self.task)
         return f"{task_name} - {self.plant.name}"
 
+
+class Garden(models.Model):
+    name = models.CharField(max_length=100, verbose_name="Nazwa ogrodu")
+    plants = models.ManyToManyField(Plant, through="PlantGarden")
+    user = models.ManyToManyField(User, blank=True, editable=False, verbose_name="Użytkownik")
+
+    def __str__(self):
+        return self.name
+
+
+class PlantGarden(models.Model):
+    garden = models.ForeignKey(Garden, on_delete=models.CASCADE)
+    plant = models.ForeignKey(Plant, on_delete=models.CASCADE)
+    start_date = models.DateField(verbose_name="Data posadzenia")
+    location = models.CharField(max_length=100, verbose_name="Lokalizacja")
+
+    def __str__(self):
+        return f"{self.plant.name} - Start Date: {self.start_date}, Location: {self.location}"
+
+
+class MaintenanceMonthlySchedule(models.Model):
+    STATUS_CHOICES = [
+        ('1', 'Nie rozpoczęto'),
+        ('2', 'W trakcie'),
+        ('3', 'Zakończono')
+    ]
+
+    plant_garden = models.ForeignKey(PlantGarden, on_delete=models.CASCADE, verbose_name='Roślina')
+    task = models.ForeignKey(PlantMaintenance, on_delete=models.CASCADE, verbose_name='Zadanie')
+    status = models.IntegerField(choices=STATUS_CHOICES, verbose_name="Status realizacji")
+    completion_date = models.DateField(verbose_name='Data realizacji')
+    month = models.IntegerField(choices=MONTH_CHOICES, verbose_name='Miesiąc')
+
+
+class Comments(models.Model):
+    comment = models.TextField(verbose_name="Komentarz")
+    created_on = models.DateTimeField(auto_now_add=True, verbose_name="Data utworzenia")
+    plant = models.ForeignKey(Plant, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)

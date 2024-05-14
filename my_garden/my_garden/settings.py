@@ -136,3 +136,10 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Setup required to restict acces for only logged in users
+LOGIN_URL = '/login'
+LOGIN_REDIRECT_URL = '/'
+# Set up required to process messages
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
