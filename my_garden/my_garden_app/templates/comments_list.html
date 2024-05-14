@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h4>W tej sekcji możesz sprawdzić komentarze innych użytkowników, dotyczące interesującej Cię rośliny.</h4>
+            <hr>
+            <h5>Komentarze dotyczą: {{ plant.name }}</h5>
+            {% if object_list %}
+                <ul class="list-group mt-3">
+                    {% for comment in object_list %}
+                        <li class="list-group-item">{{ comment.id }}: {{ comment.comment }} dodano: {{ comment.created_on }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="mt-3">Brak komentarzy dla tej rośliny.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h5>Dodajesz komentarz dla: {{ plant.name }}</h5>
+<form method="post" action="">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Dodaj komentarz</button>
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+</form>
+
+{%  endblock %}

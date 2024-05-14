@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+    <a href='/edit_garden/'>
+        <button>Edytuj ogród</button>
+    </a>
+        <a href='/delete_garden/'>
+        <button>Usuń ogród</button>
+    </a>
+    <form action="" method="POST">
+        {% csrf_token %}
+        {{ form }}
+        <input type="submit" value="Zapisz"/>
+    </form>
+{% endblock %}

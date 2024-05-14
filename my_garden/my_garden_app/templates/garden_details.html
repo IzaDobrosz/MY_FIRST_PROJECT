@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Lista roślin w : {{ garden.name }}</h2>
+    <a href='/edit_garden/{{ garden_id }}/'>
+    <button>Edytuj</button>
+    </a>
+    <a href='/delete_garden/{{ garden_id }}/'>
+    <button>Usuń</button>
+    </a>
+    <a href='/monthly_tasks/{{ garden_id }}/'>
+    <button>Kalendarz ogrodu</button>
+    </a>
+    <a href='/add_plant_to_garden/{{ garden_id }}/'>
+    <button>Dodaj roślinę do ogrodu</button>
+    </a>
+    {% if no_plants %}
+        <p>W Twoim ogrodzie nie ma żadnych roślin</p>
+    {% endif %}
+{#    <ul>#}
+{#        {% for plant in plants %}#}
+{#        <li>{{ plant.id }}: {{ plant.name }}</li><a href='/delete_plant_from_garden/{{ plant_garden_id }}/'>Usuń roślinę</a>#}
+{#        {% endfor %}#}
+{#    </ul>#}
+
+{#    <ul class="list-group">#}
+{#    {% for plant in plants %}#}
+{#    <li class="list-group-item d-flex justify-content-between align-items-center">#}
+{#        {{ plant.name }}#}
+{#        <a href='/delete_plant_from_garden/{{ plant_garden_id }}/' class="btn btn-danger">Usuń roślinę</a>#}
+{#    </li>#}
+{#    {% endfor %}#}
+{#</ul>#}
+
+     <ul class="list-group">
+    {% for plant in plants %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ plant.name }}
+            {% for plant_id, plant_garden_id in plant_garden_ids.items %}
+                {% if plant_id == plant.id %}
+                    <a href='/delete_plant_from_garden/{{ plant_garden_id }}/' class="btn btn-danger">Usuń roślinę</a>
+                {% endif %}
+            {% endfor %}
+        </li>
+    {% endfor %}
+</ul>
+
+
+{%  endblock %}
+
+
+

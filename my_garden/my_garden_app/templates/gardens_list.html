@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+    W tej sekcji możesz wyszukać stworzone przez Ciebie ogrody oraz szczegółowe informacje o każdem z nich.<br>
+    <a href='/add_garden/'>
+        <button>Dodaj ogród</button>
+    </a>
+    <ul>
+        {% for garden in object_list %}
+            <li>{{ garden.id}}:
+                <a href="/garden_details/{{ garden.id }}"> {{ garden.name }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
