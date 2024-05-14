@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Zadania pielęgnacyjne dla {{ plant.name }}</h2>
+    {% if no_tasks %}
+        <p>Wybrana roślina nie ma przypisanych żadnych zadań.</p>
+    {% endif %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Zadanie</th>
+                <th>Opis</th>
+                <th>Tydzień</th>
+                <th>Miesiąc</th>
+                <th>Edytuj</th>
+                <th>Usuń</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for plantmaintenance in tasks %}
+                <tr>
+                    <td>{{ plantmaintenance.get_task_display }}</td>
+                    <td>{{ plantmaintenance.task_description }}</td>
+                    <td>{{ plantmaintenance.get_week_of_month_display }}</td>
+                    <td>{{ plantmaintenance.get_month_display }}</td>
+                    <td>
+                        <a href="/edit_maintenance/{{ plantmaintenance.id }}/">
+                            <button class="btn btn-primary">Edytuj</button>
+                        </a>
+                    </td>
+                    <td>
+                        <a href="/delete_maintenance/{{ plantmaintenance.id }}/">
+                            <button class="btn btn-primary">Usuń</button>
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{%  endblock %}
+
+

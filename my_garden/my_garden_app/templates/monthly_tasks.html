@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Kalendarz prac dla: {{ garden.name }}</h2>
+
+    <form method="get" action="" class="mb-4">
+        <div class="form-group">
+            <label for="month">Miesiąc:</label>
+            <select name="month" id="month" class="form-control">
+                <option value="" {% if selected_month is None %}selected{% endif %}>All</option>
+                {% for month in month_choices %}
+                    <option value="{{ month.0 }}" {% if selected_month == month.0 %}selected{% endif %}>{{ month.1 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Filtruj</button>
+    </form>
+
+    <ul class="list-group">
+        {% for plant_garden in garden.plantgarden_set.all %}
+            <li class="list-group-item">
+                <strong>{{ plant_garden.plant.name }}</strong> - Data posadzenia: {{ plant_garden.start_date }}, Lokalizacja: {{ plant_garden.location }}
+                <ul class="list-group mt-2">
+                    {% for maintenance_task in plant_garden.plant.plantmaintenance_set.all %}
+                        {% if selected_month is None or maintenance_task.month == selected_month %}
+                            <li class="list-group-item">
+                                {{ maintenance_task.get_task_display }} - Tydzień: {{ maintenance_task.get_week_of_month_display }}, Miesiąc: {{ maintenance_task.get_month_display }}
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="pagination">
+    <span class="step-links">
+        {% if tasks.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ tasks.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ tasks.number }} of {{ tasks.paginator.num_pages }}.
+        </span>
+
+        {% if tasks.has_next %}
+            <a href="?page={{ tasks.next_page_number }}">next</a>
+            <a href="?page={{ tasks.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
+{% endblock %}

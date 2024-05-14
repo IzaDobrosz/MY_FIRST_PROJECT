@@ -1,9 +1,0 @@
-{% extends 'base.html' %}
-
-{% block content %}
-    Następujący obiekt zostanie usunięty {{ object }}.
-    <form method="post">
-        {% csrf_token %}
-        <input type="submit" value="Confirm">
-    </form>
-{% endblock %}
