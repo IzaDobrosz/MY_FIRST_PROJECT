@@ -1,11 +1,14 @@
 import pytest
+from django.contrib.auth.models import User
 from django.test import Client
 
-from my_garden_app.models import Plant
+from my_garden_app.models import Plant, PlantMaintenance, Garden
+
 
 @pytest.fixture
 def client():
     return Client()
+
 
 @pytest.fixture
 def plant():
@@ -40,3 +43,28 @@ def plants():
         ) for i in range(1, 4)
     ]
 
+@pytest.fixture
+def maintenance_data(plant):
+    return PlantMaintenance.objects.create(
+        plant=plant,
+        task=1,
+        task_description='test_plant1 description',
+        week_of_month=1,
+        month=1,
+    )
+
+
+@pytest.fixture
+def garden():
+    return Garden.objects.create(name='Test Garden')
+
+
+
+@pytest.fixture
+def user():
+    return User.objects.create_user(username='testuser', password='testpassword')
+
+
+@pytest.fixture
+def add_comment_view():
+    return AddCommentView()
