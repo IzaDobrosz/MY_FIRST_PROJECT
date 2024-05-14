@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>{{ plant.name }}</h2>
+    <a href='/edit_plant/{{ plant_id }}/'>
+    <button>Edytuj</button>
+    </a>
+    <a href='/delete_plant/{{ plant_id }}/'>
+    <button>Usuń</button>
+    </a>
+        <a href='/maintenance_list/{{ plant_id }}/'>
+    <button>Sprawdź pielęgnacje</button>
+    </a>
+    <ul>
+        <li><strong>Opis: </strong>{{ plant.description }}</li>
+        <li><strong>Wysokość_max: </strong>{{ plant.get_max_height_display }}</li>
+        <li><strong>Rozpiętość: </strong>{{ plant.get_spread_display }}</li>
+        <li><strong>Sezon kwitnienia: </strong>{{ plant.get_flowering_season_display }}</li>
+        <li><strong>Nasłonecznienie: </strong>{{ plant.get_sunlight_exposure_display }}</li>
+        <li><strong>Częstotliwość przycinania: </strong>{{ plant.get_pruning_frequency_display }}</li>
+        <li><strong>Potrzeba podlewania: </strong>{{ plant.get_watering_needs_display }}</li>
+        <li><strong>Nawożenie: </strong>{{ plant.get_fertilization_display }}</li>
+        <li><strong>Odporność na szkodniki i choroby: </strong>{{ plant.get_pest_disease_resistance_display }}</li>
+    </ul>
+
+    <a href='/plant/{{ plant_id }}/comment/'>
+    <button>Dodaj komentarz</button>
+    </a>
+        <a href='/comments_list/{{ plant_id }}/'>
+    <button>Zobacz komentarze</button>
+    </a>
+{%  endblock %}

@@ -1,33 +1,78 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}My Garden App{% endblock %}</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <style>
+        body {
+            background-color: #e5f5e5;
+            font-size: 20px;
+        }
+
+        .container-fluid {
+            padding-top: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        footer {
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        .title {
+            font-style: italic;
+            text-decoration-style: wavy;
+        }
+    </style>
+
 </head>
+
 <body>
 
+<div class="container-fluid">
+    <ul class="nav bg-success">
+        <li class="nav-item">
+            <a class="nav-link link-light fw-bold" href="/">HOME</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link link-light fw-bold" href="/plants_list/">BAZA ROŚLIN</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link link-light fw-bold" href="/add_maintenance/">PIELĘGNACJA</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link link-light fw-bold" href="/gardens_list/">MÓJ OGRÓD</a>
+        </li>
+        <li class="nav-item ms-auto">
+            {% if user.is_authenticated %}
+                <a class="nav-link link-light fw-bold" href="/logout/">Wyloguj</a>
+            {% else %}
+                <a class="nav-link link-light fw-bold" href="/login/">Zaloguj</a>
+            {% endif %}
+        </li>
+    </ul>
+    <h1 class="title">MyGarden</h1>
+    {% block content %}
+
+    {% endblock %}
+</div>
+<footer>
+    {% if user.is_authenticated %}
+        <p>Aktualnie zalogowany użytkownik to {{ user.username }}</p>
+    {% else %}
+        <p>Uzytkownik nie jest zalogowany</p>
+    {% endif %}
+</footer>
 </body>
-</html>
-
-{% load static %}
-<!doctype html>
-<html>
-    <head><meta charset="utf-8"></head>
-<!--    <body style="background-color:{{ background_color }};">-->
-    <img src="{% static 'garden_logo.png' %}"/>
-        <h1>My garden</h1>
-        {% block content %}
-
-        {% endblock %}
-
-     <footer>
-        {% if user.is_authenticated %}
-            <p>Aktualnie zalogowany użytkownik to {{ user.username }}</p>
-            <a href="/logout">Wyloguj</a>
-        {% else %}
-            <p>Uzytkownik nie jest zalogowany</p>
-            <a href="/login">Zaloguj</a>
-        {% endif %}
-    </footer>
-    </body>
 </html>

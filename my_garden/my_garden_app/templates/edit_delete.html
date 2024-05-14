@@ -5,8 +5,16 @@
         {% csrf_token %}
         {{ form }}
         <input type="submit" value="{{ button_text }}"/>
-    </form>
-    {% if confirm_message %}
-        <p>{{ confirm_message }}</p>
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
     {% endif %}
+
+    </form>
+
 {% endblock %}
+

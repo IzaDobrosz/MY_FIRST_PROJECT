@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+    W tej sekcji możesz wyszukać rośliny oraz szczegółowe informacje o każdej z nich.<br>
+    <a href='/add_plant/'>
+        <button>Dodaj roślinę</button>
+    </a>
+        <a href='/plant_search/'>
+        <button>Wyszukaj roślinę</button>
+    </a>
+    {{ new }}
+    <ul>
+        {% for plant in object_list %}
+            <li>{{ plant.id}}:
+                <a href="/plant_details/{{ plant.id }}"> {{ plant.name }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+
+<div class="pagination">
+    <span class="step-links">
+        {% if tasks.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ tasks.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ tasks.number }} of {{ tasks.paginator.num_pages }}.
+        </span>
+
+        {% if tasks.has_next %}
+            <a href="?page={{ tasks.next_page_number }}">next</a>
+            <a href="?page={{ tasks.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+{% endblock %}
