@@ -1,18 +1,13 @@
-import datetime
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.core import paginator
-from django.http import Http404, HttpResponseNotFound
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.views import LoginView, LogoutView
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, UpdateView, DeleteView, ListView, DetailView, FormView, TemplateView
 from .forms import PlantAddForm, PlantEditForm, PlantMaintenanceForm, PlantToGardenAddForm, GardenAddForm, \
     PlantSearchForm, CommentForm
-from .models import Plant, PlantMaintenance, PlantGarden, Garden, MaintenanceMonthlySchedule, MONTH_CHOICES, Comments
-from django.db.models import QuerySet
+from .models import Plant, PlantMaintenance, PlantGarden, Garden, MONTH_CHOICES, Comments
 from django.contrib import messages
-
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 
@@ -24,6 +19,9 @@ class HomePageView(TemplateView):
     template_name = "home.html"
 
     def get_context_data(self, **kwargs):
+        """
+        Add additional context data for the template.
+        """
         context = super().get_context_data(**kwargs)
         carousel_items = [
             {'image': 'images/azalia.jpg', 'alt': 'Azalia'},
@@ -35,29 +33,23 @@ class HomePageView(TemplateView):
         context['carousel_items'] = carousel_items
         return context
 
-"""Create login view using Django LoginView"""
-
 
 class MyGardenLoginView(LoginView):
+    """Create login view using Django LoginView"""
     template_name = 'registration/login.html'
 
 
-"""Create logout view using Django LogoutView"""
-
-
 class MyGardenLogoutView(LogoutView):
+    """Create logout view using Django LogoutView"""
     template_name = 'registration/logged_out.html'
 
 
 """Create view to add plant using generic Create View"""
-"""OK"""
 
-# dodac permissionrequired i poprawic testy
-class PlantAddView(CreateView):
+
+class PlantAddView(PermissionRequiredMixin, CreateView):
     """
     A view for adding a new plant.
-    Inherits from Django's CreateView (generic view to create an object in the database).
-    After successful submission of the form, it redirects to the 'add_maintenance' page.
     """
 
     form_class = PlantAddForm
@@ -65,14 +57,8 @@ class PlantAddView(CreateView):
     success_url = '/add_maintenance/'
     permission_required = 'my_garden.add_plant'
 
-    # def dispatch(self, request, *args, **kwargs):
-    #     if not self.has_permission():
-    #         messages.error(request, "Wymagane uprawnienia admin.")
-    #         return self.handle_no_permission()
-    #     return super().dispatch(request, *args, **kwargs)
 
 """Create view to edit plant with initial data using generic UpdateView"""
-"""wiadomosc jest po powrocie setting i html dostosowane"""
 
 
 class PlantEditView(UpdateView):
@@ -149,7 +135,7 @@ class PlantsListView(ListView):
         return Plant.objects.all()
 
         # Pagination
-        paginator = Paginator(plants, 4)
+        paginator = Paginator(plants, 20)
         page = request.GET.get('page')
 
         try:
@@ -214,7 +200,6 @@ class PLantMaintenanceAddView(CreateView):
 
 
 """Create view to edit task in plant maintenance using generic UpdateView"""
-"""OK ale brak message"""
 
 
 class PlantMaintenanceEditView(UpdateView):
@@ -243,7 +228,6 @@ class PlantMaintenanceEditView(UpdateView):
     def get_success_url(self):
         """
         Get the URL to redirect to after successfully updating the object.
-        Returns: str: Success URL.
         """
         # Get plant_id from the edited object
         plant_id = self.object.plant_id
@@ -292,7 +276,7 @@ class MaintenanceDetailView(DetailView):
     A view for displaying maintenance tasks for a specific plant.
     """
 
-    model = PlantMaintenance
+    model = Plant
     template_name = 'tasks_list.html'
     pk_url_kwarg = 'plant_id'
 
@@ -301,10 +285,11 @@ class MaintenanceDetailView(DetailView):
         Add additional data to the context.
         """
         context = super().get_context_data(**kwargs)
-        # Get the plant_id from the URL
+        # # Get the plant_id from the URL
         plant_id = self.kwargs.get(self.pk_url_kwarg)
-        # Retrieve the plant object based on plant_id
+        # # Retrieve the plant object based on plant_id
         plant = get_object_or_404(Plant, pk=plant_id)
+
         # Filter maintenance tasks for the plant
         tasks = PlantMaintenance.objects.filter(plant_id=plant_id)
 
@@ -409,10 +394,11 @@ class GardenDetailView(DetailView):
         """
         context = super().get_context_data(**kwargs)
         garden_id = self.kwargs.get(self.pk_url_kwarg)
+        # user = self.request.user
 
-        # Retrieve the garden object with the given ID
+        # Retrieve the garden object with given ID
         garden = get_object_or_404(Garden, pk=garden_id)
-        # Get all plants associated with the garden
+        # Get all plants associated with garden
         plants = garden.plants.all()
 
         # Check to display message in case of "no plants associated with the garden"
@@ -423,12 +409,16 @@ class GardenDetailView(DetailView):
         context['plants'] = plants
         context['garden_id'] = garden_id
 
-        # Get the plant_garden_ids for all plants in the garden
+        # Get the plant_garden_ids for all plants in the ga
+        # dictionary with key is a tuple:plant.id, plant_garden.start_date, plant_garden.location and value is plant_garden.id
         plant_garden_ids = {}
         for plant in plants:
-            plant_garden = plant.plantgarden_set.first()
-            if plant_garden:
-                plant_garden_ids[plant.id] = plant_garden.id
+            # Filtering PlantGarden by garden and plant
+            plant_gardens = PlantGarden.objects.filter(garden=garden, plant=plant)
+            # If there are multiple entries, handle them based on start_date and location
+            for plant_garden in plant_gardens:
+                key = (plant.id, plant_garden.start_date, plant_garden.location)
+                plant_garden_ids[key] = plant_garden.id
 
         context['plant_garden_ids'] = plant_garden_ids
         return context
@@ -501,7 +491,6 @@ class PlantToGardenEditView(UpdateView):
     model = PlantGarden
     form_class = PlantToGardenAddForm
     template_name = 'edit_delete.html'
-    success_url = '/'
     pk_url_kwarg = 'plant_garden_id'
 
     def get_context_data(self, **kwargs):
@@ -513,18 +502,26 @@ class PlantToGardenEditView(UpdateView):
         context['message'] = "Edytujesz:"
         return context
 
+    def get_success_url(self):
+        """
+        Get the URL to redirect to after successfully editing the plant in the garden.
+        """
+        # Get_object() method retrieves PlantGarden instance
+        plant_garden = self.get_object()
+        # Access the garden attribute from the PlantGarden instance to get garden.id to hand over to url
+        garden_id = plant_garden.garden.id
+        return reverse_lazy('garden_details', kwargs={'garden_id': garden_id})
 
-# """Create view to delete plant using generic DeleteView"""
 
-class PlantToGardenDeleteView(DeleteView):
+"""Create view to delete plant using generic DeleteView"""
+
+
+class PlantToGardenDeleteView(LoginRequiredMixin, DeleteView):
     """
     A view for deleting a plant from a garden using a generic DeleteView.
     """
-
     model = PlantGarden
-    form_class = PlantToGardenAddForm
     template_name = 'edit_delete.html'
-    success_url = '/'
     pk_url_kwarg = 'plant_garden_id'
 
     def get_object(self, queryset=None):
@@ -532,10 +529,8 @@ class PlantToGardenDeleteView(DeleteView):
         Get the PlantGarden object based on the provided plant_garden_id.
         """
         plant_garden_id = self.kwargs.get(self.pk_url_kwarg)
-        # Get all PlantGarden instances for the current user
-        plant_gardens = PlantGarden.objects.filter(garden__user=self.request.user)
-        # Find the PlantGarden instance based on the provided plant_garden_id
-        plant_garden = get_object_or_404(plant_gardens, id=plant_garden_id)
+        # Get the plant garden associated with the provided ID and the current user
+        plant_garden = PlantGarden.objects.select_related('garden').get(id=plant_garden_id, garden__user=self.request.user)
         return plant_garden
 
     def get_context_data(self, **kwargs):
@@ -548,8 +543,14 @@ class PlantToGardenDeleteView(DeleteView):
         plant_garden = self.get_object()
         # Get the plant associated with PlantGarden
         plant = plant_garden.plant
-        context['message'] = f'Następująca roślina zostanie usunięta { plant.name }, posadzona: {plant_garden.start_date}'
+        context['message'] = f'Następująca roślina zostanie usunięta: {plant.name}, posadzona: {plant_garden.start_date}'
         return context
+
+    def get_success_url(self):
+        """
+        Get the URL to redirect to after successful deletion.
+        """
+        return reverse_lazy('garden_details', kwargs={'garden_id': self.object.garden_id})
 
 
 class DisplayMonthlyTasksView(View):
@@ -649,4 +650,5 @@ class CommentsListView(ListView):
         plant = get_object_or_404(Plant, pk=self.kwargs['plant_id'])
         # Add the plant name to the template context
         context['plant'] = plant
+
         return context

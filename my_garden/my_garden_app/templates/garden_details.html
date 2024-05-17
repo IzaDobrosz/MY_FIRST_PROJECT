@@ -16,35 +16,37 @@
     {% if no_plants %}
         <p>W Twoim ogrodzie nie ma żadnych roślin</p>
     {% endif %}
-{#    <ul>#}
-{#        {% for plant in plants %}#}
-{#        <li>{{ plant.id }}: {{ plant.name }}</li><a href='/delete_plant_from_garden/{{ plant_garden_id }}/'>Usuń roślinę</a>#}
-{#        {% endfor %}#}
-{#    </ul>#}
 
-{#    <ul class="list-group">#}
-{#    {% for plant in plants %}#}
-{#    <li class="list-group-item d-flex justify-content-between align-items-center">#}
-{#        {{ plant.name }}#}
-{#        <a href='/delete_plant_from_garden/{{ plant_garden_id }}/' class="btn btn-danger">Usuń roślinę</a>#}
-{#    </li>#}
-{#    {% endfor %}#}
-{#</ul>#}
+<!-- 1.Iteration over plants to display each plant info-->
+<!-- 2. For each plant iteration over plant_garden_ids.items to check if first element of key (plant.id) matches current plant ID -->
+<!-- 3. For matching entry display: plant_garden_id, start_date, and location -->
 
-     <ul class="list-group">
+<ul class="list-group">
     {% for plant in plants %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            {{ plant.name }}
-            {% for plant_id, plant_garden_id in plant_garden_ids.items %}
-                {% if plant_id == plant.id %}
-                    <a href='/delete_plant_from_garden/{{ plant_garden_id }}/' class="btn btn-danger">Usuń roślinę</a>
-                {% endif %}
-            {% endfor %}
+        <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ plant.name }}</strong> (ID: {{ plant.id }})
+                </div>
+            </div>
+            <div class="mt-3">
+                {% for key, plantgarden_id in plant_garden_ids.items %}
+                    {% if key.0 == plant.id %}
+                        <div class="d-flex flex-wrap align-items-center mb-2">
+                            <div class="p-2"><strong>ID:</strong> {{ plantgarden_id }}</div>
+                            <div class="p-2"><strong>Data posadzenia:</strong> {{ key.1 }}</div>
+                            <div class="p-2"><strong>Lokalizacja:</strong> {{ key.2 }}</div>
+                            <div class="p-2 ml-auto">
+                                <a href="/edit_plant_in_garden/{{ plantgarden_id }}/" class="btn btn-primary btn-sm">Edytuj roślinę</a>
+                                <a href="/delete_plant_from_garden/{{ plantgarden_id }}/" class="btn btn-danger btn-sm">Usuń roślinę</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
         </li>
     {% endfor %}
 </ul>
-
-
 {%  endblock %}
 
 

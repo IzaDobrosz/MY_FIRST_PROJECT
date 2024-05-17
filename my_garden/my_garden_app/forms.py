@@ -57,6 +57,7 @@ class GardenAddForm(forms.ModelForm):
             # 'user',
         ]
 
+
 class PlantSearchForm(forms.Form):
     query = forms.CharField(label='Wyszukaj roślinę', max_length=100)
 

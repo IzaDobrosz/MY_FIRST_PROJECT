@@ -4,10 +4,6 @@ from django.contrib import admin
 from .models import Plant, Garden, PlantGarden, PlantMaintenance, MaintenanceMonthlySchedule, Comments
 
 
-# def my_field(obj):
-#     return f' klasa ucznia to {obj.get_school_class_display()}'
-
-
 @admin.register(Plant)
 class PlantAdmin(admin.ModelAdmin):
     pass

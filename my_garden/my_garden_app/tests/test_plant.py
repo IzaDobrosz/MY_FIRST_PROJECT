@@ -1,37 +1,144 @@
+from django.contrib.auth.models import User, Permission
+from django.utils import timezone
 import pytest
-from django.test import RequestFactory
 from django.urls import reverse
 from django.contrib.messages import get_messages
 from my_garden_app.forms import PlantMaintenanceForm, GardenAddForm
-from my_garden_app.models import Plant, PlantMaintenance, Comments, Garden
-from my_garden_app.views import (
-    MyGardenLoginView,
-    PlantAddView,
-    PlantEditView,
-    PlantDeleteView,
-    PlantsListView,
-    PlantDetailView,
-    PLantMaintenanceAddView, DisplayMonthlyTasksView,
-)
+from my_garden_app.models import Plant, PlantMaintenance, Comments, Garden, PlantGarden
+
+
+# Test for Homepage, login and logout
+@pytest.mark.django_db
+def test_home_page_view(client):
+    """
+    Test the HomePageView if it displays the correct template and data.
+    """
+    # Make a GET request to the home page
+    response = client.get(reverse('home'))
+
+    # Assert that the response is successful
+    assert response.status_code == 200
+
+    # Assert that the correct template is used
+    assert 'home.html' in response.template_name
+
+    # Assert that carousel items are present in the context
+    assert 'carousel_items' in response.context
+
+    # Assert that the carousel items contain the expected data
+    expected_items = [
+        {'image': 'images/azalia.jpg', 'alt': 'Azalia'},
+        {'image': 'images/bez.jpg', 'alt': 'Bez'},
+        {'image': 'images/budleja.jpg', 'alt': 'Budleja'},
+        {'image': 'images/glicynia.jpg', 'alt': 'Glicynia'},
+        {'image': 'images/magnolia.jpg', 'alt': 'Magnolia'},
+    ]
+    assert response.context['carousel_items'] == expected_items
+
+
+@pytest.mark.django_db
+def test_my_garden_login_view_get(client):
+    """
+    Verify that the MyGardenLoginView renders the login template correctly and that response is successful.
+    """
+    # Make a GET request to the login page
+    response = client.get(reverse('login'))
+
+    # Assert that the response is successful
+    assert response.status_code == 200
+
+    # Assert that the correct template is used
+    assert 'registration/login.html' in response.template_name
+
+
+@pytest.mark.django_db
+def test_my_garden_login_view_post(client):
+    """
+    Test MyGardenLoginView POST request whether after successful login it redirects to the homepage.
+    """
+    # Define and create test user
+    username = 'testuser'
+    password = 'testpassword'
+    user = User.objects.create_user(username=username, password=password)
+
+    # Make a POST request to the login page with correct user data
+    response = client.post(reverse('login'), {'username': username, 'password': password})
+
+    # Assert that the response is a redirect
+    assert response.status_code == 302
+
+    # Assert that the redirect is the home page
+    assert response.url == reverse('home')
+
+
+@pytest.mark.django_db
+def test_my_garden_logout_view_get(client):
+    """
+    Test the MyGardenLogoutView GET request checking if it renders the logout template correctly and that response is successful.
+    """
+    # Make a GET request to the logout page
+    response = client.get(reverse('logout'))
+
+    # Assert that the response is successful
+    assert response.status_code == 200
+
+    # Assert that the correct template is used
+    assert 'registration/logged_out.html' in response.template_name
+
+    @pytest.mark.django_db
+    def test_my_garden_logout_view_post(client):
+        """
+        Test the MyGardenLogoutView POST request if it redirects to the login page.
+        """
+        # Make a POST request to the logout page
+        response = client.post(reverse('logout'))
+
+        # Assert that the response is a redirect
+        assert response.status_code == 302
+
+        # Assert that the redirect is the login page
+        assert response.url == reverse('login')
 
 
 #  tests for Plant
+
 @pytest.mark.django_db
-def test_plant_add_view_get(client):
-    """Ensure plant add view loads and displays the form template when accessed via GET request."""
-    url = reverse('add_plant')
-    response = client.get(url)
+def test_plant_add_view_no_permission(client):
+    """
+    Test that user without the required permission receives 403 Forbidden response.
+    """
+    # Create user without the required permission
+    user = User.objects.create_user(username='testuser', password='testpassword')
+    client.login(username='testuser', password='testpassword')
+
+    # Attempt to access the PlantAddView
+    response = client.get(reverse('add_plant'))
+
+    # Assert that the response is 403 Forbidden
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_plant_add_view_with_permission(client):
+    """
+    Test that a user with the required permission can access the PlantAddView and submit the form.
+    """
+    # Create a superuser with the required permission
+    superuser = User.objects.create_superuser(username='testuser', password='testpassword')
+    permission = Permission.objects.get(codename='add_plant')
+    superuser.user_permissions.add(permission)
+    client.login(username='testuser', password='testpassword')
+
+    # Attempt to access the PlantAddView
+    response = client.get(reverse('add_plant'))
+
+    # Assert that the response is 200 OK
     assert response.status_code == 200
-    assert 'form.html' in [template.name for template in response.templates]
 
-
-@pytest.mark.django_db
-def test_plant_add_view_post(client):
-    """Verify that new plant can be added to the database when form data is submitted via POST request to the plant add view."""
-    url = reverse('add_plant')
-    data = {
-        'name': 'test_plant1',
-        'description': 'test_plant1 description',
+    # Submit the form
+    form_data = {
+        'name': 'Test Plant',
+        'description': 'Test Plant description',
         'max_height': 1,
         'spread': 1,
         'flowering_season': 1,
@@ -41,15 +148,22 @@ def test_plant_add_view_post(client):
         'fertilization': 1,
         'pest_disease_resistance': 1,
     }
-    response = client.post(url, data)
+    response = client.post(reverse('add_plant'), data=form_data)
+
+    # Assert that the response is a redirect to the success URL
     assert response.status_code == 302
     assert response.url == '/add_maintenance/'
+
+    # Verify that the plant was added to the database
+    assert Plant.objects.filter(name='Test Plant').exists()
     assert Plant.objects.count() == 1
 
 
 @pytest.mark.django_db
 def test_plant_edit_view_get(client, plant):
-    """Ensure plant edit view loads and displays the edit plant template when accessed via GET request."""
+    """
+    Ensure plant edit view loads and displays the edit plant template  via GET request.
+    """
     url = reverse('edit_plant', kwargs={'plant_id': plant.pk})
     response = client.get(url)
     assert response.status_code == 200
@@ -57,7 +171,9 @@ def test_plant_edit_view_get(client, plant):
 
 @pytest.mark.django_db
 def test_plant_edit_view_post(client, plant):
-    """Verify existing plant can be updated in the database when form data is submitted via POST request to the plant edit view."""
+    """
+    Verify existing plant can be updated in database when form data is submitted via POST.
+    """
     url = reverse('edit_plant', kwargs={'plant_id': plant.pk})
     data = {
         'name': 'Updated Plant Name',
@@ -78,9 +194,12 @@ def test_plant_edit_view_post(client, plant):
     assert updated_plant.description == 'Updated Plant Description'
     assert updated_plant.flowering_season == 2
 
+
 @pytest.mark.django_db
 def test_plant_delete_view(client, plant):
-    """Ensure plant object can be deleted from the database when a POST request is made to the plant delete view."""
+    """
+    Ensure plant object can be deleted from the database when a POST request.
+    """
     url = reverse('delete_plant', kwargs={'plant_id': plant.id})
     response = client.post(url)
     assert response.status_code == 302
@@ -89,7 +208,9 @@ def test_plant_delete_view(client, plant):
 
 @pytest.mark.django_db
 def test_plants_list_view(client, plants):
-    """Verify plants list view loads, renders the plants list template, and displays the correct number of plant objects retrieved from the database."""
+    """
+    Verify plants list view loads, renders the plants list template, and displays the correct number of plant objects.
+    """
     url = reverse('plants_list')
     response = client.get(url)
     assert response.status_code == 200
@@ -98,7 +219,9 @@ def test_plants_list_view(client, plants):
 
 @pytest.mark.django_db
 def test_plant_detail_view(client, plant):
-    """Ensure plant detail view loads, renders the plant details template, and displays details of the specified plant object retrieved from the database."""
+    """
+    Ensure plant detail view loads, renders the plant details template, and displays details for correct plant object.
+    """
     url = reverse('plant_details', kwargs={'plant_id': plant.id})
     response = client.get(url)
     assert response.status_code == 200
@@ -135,7 +258,7 @@ def test_plant_maintenance_add_view_post(client, plant):
     assert response.url == '/add_maintenance/'
     assert PlantMaintenance.objects.filter(plant=plant).exists()
     storage = get_messages(response.wsgi_request)
-    assert any(message.message ==f"Zadania dla: { plant.name } zostały dodane." for message in storage)
+    assert any(message.message == f"Zadania dla: { plant.name } zostały dodane." for message in storage)
 
 
 @pytest.mark.django_db
@@ -179,7 +302,7 @@ def test_plant_maintenance_edit_view_post(client, plant, maintenance_data):
 @pytest.mark.django_db
 def test_plant_maintenance_delete_view(client, maintenance_data):
     """
-    Test if the PlantMaintenanceDeleteView deletes the object correctly and redirects to the correct URL after deletion.
+    Test if the PlantMaintenanceDeleteView deletes the object correctly and redirects to the correct URL afterwords.
     """
     url = reverse('delete_maintenance', kwargs={'task_id': maintenance_data.pk})
     response = client.post(url)
@@ -201,46 +324,34 @@ def test_plant_maintenance_view_context(client, maintenance_data):
     assert 'button_text' in response.context
     assert response.context['button_text'] == 'Usuń'
 
-# @pytest.mark.django_db
-# def test_plant_maintenance_detail_view(client, maintenance_data):
-#     """
-#     Test whether the MaintenanceDetailView displays maintenance tasks correctly for a plant.
-#     """
-#     url = reverse('maintenance_list', kwargs={'plant_id': maintenance_data.plant.id})
-#     response = client.get(url)
-#     # assert response.status_code == 200
-#     assert 'tasks' in response.context
-#     assert 'plant' in response.context
-#     assert 'plant_id' in response.context
-#     assert maintenance_data in response.context['tasks']
-#     assert response.context['plant'] == maintenance_data.plant
-#     assert response.context['plant_id'] == maintenance_data.plant.id
 
-# @pytest.mark.django_db
-# def test_plant_maintenance_detail_view(client, maintenance_data):
-#     """
-#     Test whether the MaintenanceDetailView displays maintenance tasks correctly for a plant.
-#     """
-#     plant_id = maintenance_data.plant_id
-#     url = reverse('maintenance_list', kwargs={'plant_id': plant_id})
-#     response = client.get(url)
-#     assert response.status_code == 200
-#     assert 'tasks' in response.context
-#     assert 'plant' in response.context
-#     assert 'plant_id' in response.context
-#     assert maintenance_data in response.context['tasks']
-#     assert response.context['plant'] == maintenance_data.plant
-#     assert response.context['plant_id'] == plant_id
+@pytest.mark.django_db
+def test_maintenance_detail_view_with_tasks(client, plant, maintenance_data):
+    """
+    Test if the MaintenanceDetailView displays maintenance tasks for a specific plant when tasks are available.
+    """
+    # Access the MaintenanceDetailView for the created plant
+    response = client.get(reverse('maintenance_list', kwargs={'plant_id': plant.id}))
 
-# @pytest.mark.django_db
-# def test_maintenance_detail_view(client, plant):
-#     """Ensure maintenance detail view loads and displays details of the specified plant maintenance."""
-#     task = PlantMaintenance.objects.create(plant=plant, task='Test Task')
-#     url = reverse('maintenance_detail', kwargs={'plant_id': plant.id})
-#     response = client.get(url)
-#     assert response.status_code == 200
-#     assert response.context['plant'] == plant
-#     assert task in response.context['tasks']
+    # Assert that the response is successful
+    assert response.status_code == 200
+
+    # Assert that the plant name and maintenance task are present in the response content
+    assert 'test_plant1' in response.content.decode()
+    assert 'test_plant1 description' in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_maintenance_detail_view_without_tasks(client, plant):
+    """
+    Test if MaintenanceDetailView correctly handles the case for "no tasks" scenario.
+    """
+    url = reverse('maintenance_list', kwargs={'plant_id': plant.pk})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert plant.name in response.content.decode()
+    assert 'Wybrana roślina nie ma przypisanych żadnych zadań.' in response.content.decode()
 
 
 # Test for Garden
@@ -254,6 +365,7 @@ def test_garden_add_view_get(client, user):
     assert response.status_code == 200
     assert 'garden.html' in response.template_name
     assert isinstance(response.context['form'], GardenAddForm)
+
 
 @pytest.mark.django_db
 def test_garden_add_view_post(client, user):
@@ -269,6 +381,7 @@ def test_garden_add_view_post(client, user):
     assert response.status_code == 302
     assert response.url == reverse('add_plant_to_garden', kwargs={'garden_id': Garden.objects.latest('id').pk})
     assert Garden.objects.filter(name='Test Garden', user=user).exists()
+
 
 @pytest.mark.django_db
 def test_garden_edit_view(client, garden, user):
@@ -289,6 +402,8 @@ def test_garden_edit_view(client, garden, user):
         key in response.context for key in
         ['form', 'button_text', 'message', 'confirm_message', 'garden', 'garden_id']
     )
+
+
 @pytest.mark.django_db
 def test_garden_edit_view_post(client, garden, user):
     """
@@ -297,12 +412,13 @@ def test_garden_edit_view_post(client, garden, user):
     client.force_login(user)
     url = reverse('edit_garden', kwargs={'garden_id': garden.id})
     form_data = {
-        'name' :'Test Garden1'
+        'name': 'Test Garden1'
     }
     response = client.post(url, data=form_data)
     assert response.status_code == 302
     assert response.url == reverse('garden_details', kwargs={'garden_id': garden.id})
     assert Garden.objects.filter(id=garden.id, name='Test Garden1').exists()
+
 
 @pytest.mark.django_db
 def test_garden_edit_view_post_invalid(client, garden, user):
@@ -312,10 +428,11 @@ def test_garden_edit_view_post_invalid(client, garden, user):
     client.force_login(user)
     url = reverse('edit_garden', kwargs={'garden_id': garden.id})
     form_data = {
-        'name' : ''
+        'name': ''
     }
     response = client.post(url, data=form_data)
     assert response.status_code == 200
+
 
 @pytest.mark.django_db
 def test_gardens_list_view_no_gardens(client, user):
@@ -328,6 +445,7 @@ def test_gardens_list_view_no_gardens(client, user):
     assert response.status_code == 200
     assert len(response.context['object_list']) == 0
 
+
 @pytest.mark.django_db
 def test_gardens_list_view_redirect_unauthenticated(client):
     """
@@ -339,31 +457,31 @@ def test_gardens_list_view_redirect_unauthenticated(client):
     assert response.url.startswith(reverse('login')) or response.url.startswith('/login?next=' + reverse('gardens_list'))
 
 
-# @pytest.mark.django_db
-# def test_garden_detail_view(client, user, garden, plants):
-#     """
-#     Test if the GardenDetailView displays details of a single garden correctly.
-#     """
-#     client.force_login(user)
-#     url = reverse('garden_details', kwargs={'garden_id': garden.id})
-#     response = client.get(url)
-#     assert response.status_code == 200
-#     assert 'garden' in response.context
-#     assert 'plants' in response.context
-#     assert 'garden_id' in response.context
-#     assert 'plant_garden_ids' in response.context
-#     assert response.context['garden'] == garden
-#
-#     # Check if the plants associated with the garden are in the context
-#     for plant in plants:
-#         assert plant in response.context['plants']
-#
-#     # Check if the garden ID is in the context
-#     assert response.context['garden_id'] == garden.id
-#
-#     # Check if the plant_garden_ids are correctly set in the context
-#     for plant in plants:
-#         assert response.context['plant_garden_ids'][plant.id] == plant.plantgarden_set.first().id
+@pytest.mark.django_db
+def test_garden_detail_view_with_plants(client, garden, plant_garden):
+    """
+    Test if GardenDetailView correctly displays details of garden with added plants.
+    """
+    url = reverse('garden_details', kwargs={'garden_id': garden.pk})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert garden.name in response.content.decode()
+    assert plant_garden.plant.name in response.content.decode()
+    assert plant_garden.location in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_garden_detail_view_without_plants(client, garden):
+    """
+    Test if GardenDetailView correctly handles the case of "no plants in the garden" scenario.
+    """
+    url = reverse('garden_details', kwargs={'garden_id': garden.pk})
+    response = client.get(url)
+
+    assert response.status_code == 200
+    assert garden.name in response.content.decode()
+    assert 'W Twoim ogrodzie nie ma żadnych roślin' in response.content.decode()
 
 
 @pytest.mark.django_db
@@ -393,7 +511,7 @@ def test_plant_search_view(client, plants):
 @pytest.mark.django_db
 def test_plant_to_garden_add_view(client, garden):
     """
-    Test if PlantToGardenAddView correctly adds a plant to a garden.
+    Test if PlantToGardenAddView correctly adds a plant to the garden.
     """
     # Access the add plant to garden view
     url = reverse('add_plant_to_garden', kwargs={'garden_id': garden.id})
@@ -404,50 +522,53 @@ def test_plant_to_garden_add_view(client, garden):
     assert response.context['form'].__class__.__name__ == 'PlantToGardenAddForm'
 
 
-# @pytest.mark.django_db
-# def test_plant_to_garden_delete_view(client, plant_garden):
-#     """
-#     Test if PlantToGardenDeleteView successfully deletes a plant from a garden.
-#     """
+@pytest.mark.django_db
+def test_plant_deletion_success(client, user):
+    """
+    Tests if deletion of plant from the garden works properly"
+    """
+    # Create plant
+    plant = Plant.objects.create(
+        name='Test Plant',
+        description='Test Plant Description',
+        max_height=1,
+        spread=2,
+        flowering_season=2,
+        sunlight_exposure=3,
+        pruning_frequency=1,
+        watering_needs=1,
+        fertilization=1,
+        pest_disease_resistance=1
+    )
+    # Create garden with user
+    garden = Garden.objects.create(name='Test Garden')
+    garden.user.add(user)
 
-#     url = reverse('delete_plant_from_garden', kwargs={'plant_garden_id': plant_garden.id})
-#
-#     # Get the count of PlantGarden instances before deletion
-#     count_before = PlantGarden.objects.count()
-#
-#     # Perform the deletion
-#     response = client.post(url)
+    # Add plant to garden
+    plant_garden = PlantGarden.objects.create(
+        garden=garden,
+        plant=plant,
+        start_date='2024-01-01',
+        location='Test Location'
+    )
 
-#     assert response.status_code == 302
-#
-#     # Get the count of PlantGarden instances after deletion
-#     count_after = PlantGarden.objects.count()
-#
-#     # Check if the count is reduced by 1 after deletion
-#     assert count_after == count_before - 1
-#
-#
-# @pytest.mark.django_db
-# def test_plant_to_garden_delete_view_context(client, plant_garden):
-#     """
-#     Test if PlantToGardenDeleteView correctly passes context data to the template.
-#     """
-#     url = reverse('delete_plant_from_garden', kwargs={'plant_garden_id': plant_garden.id})
-#
-#     # Perform the deletion
-#     response = client.get(url)
-#
-#     # Check response status code
-#     assert response.status_code == 200
-#
-#     # Check if the correct button text is in the context
-#     assert 'button_text' in response.context
-#     assert response.context['button_text'] == 'Usuń'
-#
-#     # Check if the correct message is in the context
-#     assert 'message' in response.context
-#     assert response.context[
-#                'message'] == f'Następująca roślina zostanie usunięta {plant_garden.plant.name}, posadzona: {plant_garden.start_date}'
+    # Log in user
+    client.login(username='testuser', password='testpassword')
+
+    # Check if PlantGarden exists before deletion
+    assert PlantGarden.objects.filter(id=plant_garden.id).exists()
+
+    delete_url = reverse('delete_plant_from_garden', kwargs={'plant_garden_id': plant_garden.id})
+    # Send POST request deleting plant from the garden
+    response = client.post(delete_url)
+
+    # Check response status
+    assert response.status_code == 302
+    # Check if PlantGarden does not exist
+    assert not PlantGarden.objects.filter(id=plant_garden.id).exists()
+    # Check redirection
+    assert response.url == reverse('garden_details', kwargs={'garden_id': garden.id})
+
 
 @pytest.mark.django_db
 def test_display_monthly_tasks_view(client, garden, maintenance_data, user):
@@ -465,11 +586,12 @@ def test_display_monthly_tasks_view(client, garden, maintenance_data, user):
     assert 'tasks' in response.context
 
 
-
 # Tests for Comments
 @pytest.mark.django_db
 def test_add_comment_view_get(client, user, plant):
-    """Ensure comment add view loads and displays the form template when accessed via GET request."""
+    """
+    Ensure comment add view loads and displays the form template via GET request.
+    """
     client.force_login(user)
     url = reverse('add_comment', kwargs={'plant_id': plant.id})
     response = client.get(url)
@@ -521,38 +643,40 @@ def test_add_comment_view_post_valid_form(client, user, plant):
     assert plant.comments_set.filter(comment=comment_text).exists()
 
 
-# @pytest.mark.django_db
-# def test_comments_list_view(client, user, plant):
-#     """
-#     Test that the comments list view returns the correct comments for a plant.
-#     """
-#     # Create comments for the plant
-#     comment1 = Comments.objects.create(comment="Comment 1", created_on=timezone.now(), plant=plant, user=user)
-#     comment2 = Comments.objects.create(comment="Comment 2", created_on=timezone.now(), plant=plant, user=user)
-#
-#     url = reverse('comments_list', kwargs={'plant_id': plant.id})
-#     response = client.get(url)
-#     assert response.status_code == 200
-#
-#     # Check if the comments are in the context
-#     assert comment1 in response.context['comments']
-#     assert comment2 in response.context['comments']
-#
-#     # Check if the plant is in the context
-#     assert response.context['plant'] == plant
-#
-# @pytest.mark.django_db
-# def test_comments_list_view_no_comments(client, user, plant):
-#     """
-#     Test that the comments list view returns no comments for a plant with no comments.
-#     """
-##     url = reverse('comments_list', kwargs={'plant_id': plant.id})
-#     response = client.get(url)
-#     assert response.status_code == 200
-#
-#     # Check if there are no comments in the context
-#     assert 'comments' not in response.context
-#
-#     # Check if the plant is in the context
-#     assert response.context['plant'] == plant
+@pytest.mark.django_db
+def test_comments_list_view(client, user, plant):
+    """
+    Test that the comments list view returns the correct comments for a plant.
+    """
+    # Create comments for the plant
+    comment1 = Comments.objects.create(comment="Comment 1", created_on=timezone.now(), plant=plant, user=user)
+    comment2 = Comments.objects.create(comment="Comment 2", created_on=timezone.now(), plant=plant, user=user)
 
+    url = reverse('comments_list', kwargs={'plant_id': plant.id})
+    response = client.get(url)
+    assert response.status_code == 200
+
+    # Check if the comments are in the context as 'object_list'
+    assert comment1 in response.context['object_list']
+    assert comment2 in response.context['object_list']
+
+    # Check if the plant is in the context
+    assert response.context['plant'] == plant
+
+
+@pytest.mark.django_db
+def test_comments_list_view_no_comments(client, user, plant):
+    """
+    Test that the comments list view returns no comments for a plant with no comments.
+    """
+    url = reverse('comments_list', kwargs={'plant_id': plant.id})
+    response = client.get(url)
+    assert response.status_code == 200
+
+    # Check if there are no comments in the context
+    assert 'comments' not in response.context
+
+    # Check if the plant is in the context
+    assert response.context['plant'] == plant
+    # Check if the correct message is displayed ->decode method to convert bytes into a string
+    assert 'Brak komentarzy dla tej rośliny.' in response.content.decode()
